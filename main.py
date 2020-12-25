@@ -48,7 +48,7 @@ class register:
 
     def __init__(self, code=None):
         self.options = webdriver.ChromeOptions()
-        self.options.add_argument('--headless')
+        # self.options.add_argument('--headless')
         # self.options.add_argument('--hide-scrollbars')  # 隐藏滚动条
         # self.options.add_argument('blink-settings=imagesEnabled=false')  # 不加载图片
         # self.options.add_argument('--disable-gpu')
