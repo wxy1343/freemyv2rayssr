@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import random
 import time
@@ -26,7 +27,10 @@ def login(email, passwd):
         r = requests.post(url, data=data, headers=headers, timeout=10)
     except requests.exceptions.ReadTimeout:
         pass
-    if r.json()['ret'] == 0:
+    try:
+        if r.json()['ret'] == 0:
+            return
+    except json.decoder.JSONDecodeError:
         return
     cookies = r.cookies.get_dict()
     print(cookies)
@@ -287,7 +291,7 @@ if __name__ == '__main__':
     code = input('输入邀请码(没有留空)：')
     while True:
         reg = register(code)
-        # reg.options.add_argument('--headless')
+        reg.options.add_argument('--headless')
         if reg():
             if login_list:
                 print('开始登录')
