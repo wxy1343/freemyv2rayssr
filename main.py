@@ -2,20 +2,16 @@ import os
 import time
 import random
 import traceback
-
 import requests
 from PIL import Image
 from threading import Thread
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver import ActionChains
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver import ActionChains, DesiredCapabilities
-import codecs
-import sys
 
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 reg_success = 0
 login_list = []
 
@@ -43,7 +39,6 @@ class register:
         if not cls.__species:
             cls.__species = object.__new__(cls)
             cls.chrome = ChromeDriverManager().install()
-            print('下载驱动成功')
         return object.__new__(cls)
 
     def __init__(self, code=None):
@@ -67,12 +62,12 @@ class register:
 
     def __call__(self):
         print('开始注册')
-        self.brower = webdriver.Chrome(self.chrome, options=self.options)
+        self.browser = webdriver.Chrome(self.chrome, options=self.options)
         print('创建浏览器驱动成功')
-        wait = WebDriverWait(self.brower, 10)
+        wait = WebDriverWait(self.browser, 10)
         # 打开网页
         print('打开网页')
-        self.brower.get(self.url)
+        self.browser.get(self.url)
         print('打开网页成功')
         # 生成随机账号
         self.name = ''.join(random.sample('abcdefghijklmnopqrstuvwxyz1234567890', 10))
@@ -82,24 +77,24 @@ class register:
         # 填入信息
         print('填入信息')
         wait.until(EC.presence_of_element_located((By.ID, 'name')))
-        self.brower.find_element(By.ID, 'name').send_keys(self.name)
+        self.browser.find_element(By.ID, 'name').send_keys(self.name)
         wait.until(EC.presence_of_element_located((By.ID, 'email')))
-        self.brower.find_element(By.ID, 'email').send_keys(self.email)
+        self.browser.find_element(By.ID, 'email').send_keys(self.email)
         wait.until(EC.presence_of_element_located((By.ID, 'passwd')))
-        self.brower.find_element(By.ID, 'passwd').send_keys(self.passwd)
+        self.browser.find_element(By.ID, 'passwd').send_keys(self.passwd)
         wait.until(EC.presence_of_element_located((By.ID, 'repasswd')))
-        self.brower.find_element(By.ID, 'repasswd').send_keys(self.passwd)
+        self.browser.find_element(By.ID, 'repasswd').send_keys(self.passwd)
         wait.until(EC.presence_of_element_located((By.ID, 'wechat')))
-        self.brower.find_element(By.ID, 'wechat').send_keys(self.wechat)
+        self.browser.find_element(By.ID, 'wechat').send_keys(self.wechat)
         wait.until(EC.presence_of_element_located((By.ID, 'imtype')))
-        self.brower.find_element(By.ID, 'imtype').click()
+        self.browser.find_element(By.ID, 'imtype').click()
         wait.until(EC.presence_of_element_located((By.XPATH, "//ul[@class='dropdown-menu']/li[last()]/a")))
         print('填入信息成功')
         # 循环等待列表框加载成功并点击
         while True:
             time.sleep(0.1)
             try:
-                self.brower.find_element_by_xpath("//ul[@class='dropdown-menu']/li[last()]/a").click()
+                self.browser.find_element_by_xpath("//ul[@class='dropdown-menu']/li[last()]/a").click()
             except:
                 continue
             break
@@ -116,19 +111,19 @@ class register:
         time.sleep(0.5)
         while True:
             try:
-                self.brower.find_element_by_id('tos').click()
+                self.browser.find_element_by_id('tos').click()
                 break
             except:
                 pass
         time.sleep(0.5)
         while True:
             try:
-                self.brower.find_element_by_id('reg').click()
+                self.browser.find_element_by_id('reg').click()
                 break
             except:
                 pass
         time.sleep(0.5)
-        self.brower.close()
+        self.browser.close()
 
     def reg(self):
         self.__call__()
@@ -137,34 +132,34 @@ class register:
     def __t(cls, self):
         while True:
             try:
-                if self.brower.find_element_by_class_name('geetest_success_radar_tip_content').text == '验证成功':
+                if self.browser.find_element_by_class_name('geetest_success_radar_tip_content').text == '验证成功':
                     self.__success = True
                     break
             except:
                 pass
             try:
-                if self.brower.find_element_by_class_name('geetest_result_content').text == '请正确拼合图像':
+                if self.browser.find_element_by_class_name('geetest_result_content').text == '请正确拼合图像':
                     self.__start_crop_image = False
                     self.__refresh = True
             except:
                 pass
             try:
-                if self.brower.find_element_by_class_name('geetest_radar_tip_content').text == '点击按钮进行验证':
+                if self.browser.find_element_by_class_name('geetest_radar_tip_content').text == '点击按钮进行验证':
                     time.sleep(0.5)
-                    self.brower.find_element_by_class_name('geetest_radar_tip_content').click()
+                    self.browser.find_element_by_class_name('geetest_radar_tip_content').click()
             except:
                 pass
             try:
-                if self.brower.find_element_by_class_name('geetest_slider_tip').text == '拖动滑块完成拼图':
+                if self.browser.find_element_by_class_name('geetest_slider_tip').text == '拖动滑块完成拼图':
                     self.__start_crop_image = True
                 else:
                     self.__start_crop_image = False
             except:
                 pass
             try:
-                if self.brower.find_element_by_class_name('geetest_reset_tip_content').text == '请点击重试':
+                if self.browser.find_element_by_class_name('geetest_reset_tip_content').text == '请点击重试':
                     self.__start_crop_image = False
-                    self.brower.find_element_by_class_name('geetest_reset_tip_content').click()
+                    self.browser.find_element_by_class_name('geetest_reset_tip_content').click()
             except:
                 pass
 
@@ -172,7 +167,7 @@ class register:
         # 保存图片
         # 截图验证码图片
         # 定位某个元素在浏览器中的位置
-        img = self.brower.find_element_by_xpath("//*[@class='geetest_canvas_slice geetest_absolute']")
+        img = self.browser.find_element_by_xpath("//*[@class='geetest_canvas_slice geetest_absolute']")
         img_data = img.screenshot_as_png
         with open(image_file_name, 'wb') as f:
             f.write(img_data)
@@ -181,7 +176,7 @@ class register:
 
     def __crop_images(self):
         img1 = self.__crop_image('缺口图片.png')
-        img_obj = self.brower.find_element_by_xpath(
+        img_obj = self.browser.find_element_by_xpath(
             '//*[@class="geetest_canvas_fullbg geetest_fade geetest_absolute"]')  # 找到图片，建立对象
         img_style = img_obj.get_attribute('style')  # 记录style的值
         # 完整图片
@@ -193,10 +188,10 @@ class register:
         # #获取属性
         # elementObj.get_attribute(attributeName)
         # #删除属性
-        self.brower.execute_script("arguments[0].removeAttribute(arguments[1])", img_obj, 'style')  # 删除图片属性，显示完整图片
+        self.browser.execute_script("arguments[0].removeAttribute(arguments[1])", img_obj, 'style')  # 删除图片属性，显示完整图片
         img2 = self.__crop_image('完整图片.png')
-        self.brower.execute_script("arguments[0].setAttribute(arguments[1],arguments[2])", img_obj, 'style',
-                                   img_style)  # 将style值添加回去，显示缺口图片
+        self.browser.execute_script("arguments[0].setAttribute(arguments[1],arguments[2])", img_obj, 'style',
+                                    img_style)  # 将style值添加回去，显示缺口图片
         return img1, img2
 
     def __slid_verify(self):
@@ -206,7 +201,7 @@ class register:
             elif self.__success:
                 return True
         if self.__refresh:
-            self.brower.find_element_by_class_name('geetest_refresh_1').click()
+            self.browser.find_element_by_class_name('geetest_refresh_1').click()
             time.sleep(0.5)
             self.__refresh = False
         time.sleep(0.5)
@@ -217,30 +212,30 @@ class register:
         target_coor = self.__find_coordinate(56, img1, img2)
         print(f'滑块偏移：{slid_coor}，缺口偏移：{target_coor}')
 
-        target_coor -= slid_coor  # 调整偏移量
+        target_coor -= slid_coor + 3  # 调整偏移量
         track = []  # 用于储存一次拖动滑块的距离（不能一次拖到位，不然会被判定为机器）
         i = 0
         # 分为3断，分别设置不同速度，越接近缺口，越慢
-        stagev1 = round((target_coor - slid_coor) / 4)  # 第1段（前3/5）：分为4次（平均距离移动），stafev1为当前阶段的速度
+        stagev1 = round((target_coor - slid_coor) / 3)  # 第1段（前3/5）：分为4次（平均距离移动），stafev1为当前阶段的速度
         while i < round(target_coor * 3 / 5):
             i += stagev1
             track.append(stagev1)
-        stagev2 = round((target_coor - i) / 7)  # 第2段（3/5到21/25）：分为7次（平均距离移动）
+        stagev2 = round((target_coor - i) / 4)  # 第2段（3/5到21/25）：分为7次（平均距离移动）
         while i < round(target_coor * 21 / 25):
             i += stagev2
             track.append(stagev2)
-        stagev3 = 1
+        stagev3 = round((target_coor - i) / 5)
         while i < round(target_coor):  # 第3段（21/25到最后）：按1为单位移动
             i += stagev3
             track.append(stagev3)
 
-        slider = self.brower.find_element_by_xpath("//div[@class='geetest_slider_button']")  # 找到拖动按钮
-        ActionChains(self.brower).move_to_element(slider).perform()  # 建立拖动对象
-        ActionChains(self.brower).click_and_hold(slider).perform()  # 点击，并按住鼠标不放
+        slider = self.browser.find_element_by_xpath("//div[@class='geetest_slider_button']")  # 找到拖动按钮
+        ActionChains(self.browser).move_to_element(slider).perform()  # 建立拖动对象
+        ActionChains(self.browser).click_and_hold(slider).perform()  # 点击，并按住鼠标不放
 
         for x in track:
-            ActionChains(self.brower).move_by_offset(xoffset=x, yoffset=0).perform()  # 拖动，x为一次移动的距离
-        ActionChains(self.brower).release().perform()  # 放开鼠标
+            ActionChains(self.browser).move_by_offset(xoffset=x, yoffset=0).perform()  # 拖动，x为一次移动的距离
+        ActionChains(self.browser).release().perform()  # 放开鼠标
         return
 
     def __compare_pixel(self, image1, image2, i, j):
@@ -285,5 +280,8 @@ if __name__ == '__main__':
             os._exit(0)
         except:
             traceback.print_exc()
-            reg.brower.close()
+            try:
+                reg.browser.close()
+            except NameError:
+                pass
             continue
