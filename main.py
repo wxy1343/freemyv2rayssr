@@ -291,7 +291,7 @@ if __name__ == '__main__':
     code = input('输入邀请码(没有留空)：')
     while True:
         reg = register(code)
-        reg.options.add_argument('--headless')
+        # reg.options.add_argument('--headless')
         if reg():
             if login_list:
                 print('开始登录')
