@@ -1,33 +1,35 @@
+import io
 import os
-import time
 import random
+import time
 import traceback
-import requests
-from PIL import Image
 from threading import Thread
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver import ActionChains
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
-reg_success = 0
-login_list = []
+import func_timeout
+import requests
+import selenium
+from PIL import Image
+from func_timeout import func_set_timeout
+from selenium import webdriver
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 def login(email, passwd):
     url = 'https://v2.freeyes.xyz/auth/login'
     data = {'email': email, 'passwd': passwd}
     headers = {'user-agent': None}
-    r = requests.post(url, data=data, headers=headers, timeout=10)
-    print(r.json())
+    try:
+        r = requests.post(url, data=data, headers=headers, timeout=10)
+    except requests.exceptions.ReadTimeout:
+        pass
     if r.json()['ret'] == 0:
         return
     cookies = r.cookies.get_dict()
     print(cookies)
-    url = 'https://v2.freeyes.xyz/user'
-    r = requests.get(url, cookies=cookies)
     return cookies
 
 
@@ -43,24 +45,39 @@ class register:
 
     def __init__(self, code=None):
         self.options = webdriver.ChromeOptions()
-        # self.options.add_argument('--headless')
-        # self.options.add_argument('--hide-scrollbars')  # 隐藏滚动条
-        # self.options.add_argument('blink-settings=imagesEnabled=false')  # 不加载图片
-        # self.options.add_argument('--disable-gpu')
-        # self.options.add_argument('--incognito')
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--start-maximized")
-        # self.capa = DesiredCapabilities.CHROME
-        # self.capa["pageLoadStrategy"] = "none"
         self.__start_crop_image = False
         self.__refresh = False
         self.__success = False
+        self.__completed = False
         if not code:
             code = 'eId6'
         self.url = f'https://v2.freeyes.xyz/auth/register?code={code}'
         print(self.url)
 
+    def __del__(self):
+        self.__completed = True
+        try:
+            self.browser.close()
+        except (NameError, ImportError, AttributeError, selenium.common.exceptions.InvalidSessionIdException):
+            pass
+        del self
+
     def __call__(self):
+        try:
+            return self.__reg()
+        except func_timeout.exceptions.FunctionTimedOut:
+            print('运行超时')
+            self.__del__()
+        except KeyboardInterrupt:
+            os._exit(0)
+        except:
+            traceback.print_exc()
+            self.__del__()
+
+    @func_set_timeout(100)
+    def __reg(self):
         print('开始注册')
         self.browser = webdriver.Chrome(self.chrome, options=self.options)
         print('创建浏览器驱动成功')
@@ -123,10 +140,8 @@ class register:
             except:
                 pass
         time.sleep(0.5)
-        self.browser.close()
-
-    def reg(self):
-        self.__call__()
+        self.__del__()
+        return True
 
     @classmethod
     def __t(cls, self):
@@ -162,6 +177,8 @@ class register:
                     self.browser.find_element_by_class_name('geetest_reset_tip_content').click()
             except:
                 pass
+            if self.__completed:
+                break
 
     def __crop_image(self, image_file_name):
         # 保存图片
@@ -171,7 +188,7 @@ class register:
         img_data = img.screenshot_as_png
         with open(image_file_name, 'wb') as f:
             f.write(img_data)
-        im = Image.open(image_file_name)
+        im = Image.open(io.BytesIO(img_data))
         return im
 
     def __crop_images(self):
@@ -211,32 +228,33 @@ class register:
         # 获取缺口图片位置
         target_coor = self.__find_coordinate(56, img1, img2)
         print(f'滑块偏移：{slid_coor}，缺口偏移：{target_coor}')
-
-        target_coor -= slid_coor + 3  # 调整偏移量
-        track = []  # 用于储存一次拖动滑块的距离（不能一次拖到位，不然会被判定为机器）
-        i = 0
-        # 分为3断，分别设置不同速度，越接近缺口，越慢
-        stagev1 = round((target_coor - slid_coor) / 3)  # 第1段（前3/5）：分为4次（平均距离移动），stafev1为当前阶段的速度
-        while i < round(target_coor * 3 / 5):
-            i += stagev1
-            track.append(stagev1)
-        stagev2 = round((target_coor - i) / 4)  # 第2段（3/5到21/25）：分为7次（平均距离移动）
-        while i < round(target_coor * 21 / 25):
-            i += stagev2
-            track.append(stagev2)
-        stagev3 = round((target_coor - i) / 5)
-        while i < round(target_coor):  # 第3段（21/25到最后）：按1为单位移动
-            i += stagev3
-            track.append(stagev3)
-
+        target_coor -= slid_coor  # 调整偏移量
+        track = self.__get_track(target_coor)
         slider = self.browser.find_element_by_xpath("//div[@class='geetest_slider_button']")  # 找到拖动按钮
         ActionChains(self.browser).move_to_element(slider).perform()  # 建立拖动对象
         ActionChains(self.browser).click_and_hold(slider).perform()  # 点击，并按住鼠标不放
-
         for x in track:
             ActionChains(self.browser).move_by_offset(xoffset=x, yoffset=0).perform()  # 拖动，x为一次移动的距离
         ActionChains(self.browser).release().perform()  # 放开鼠标
         return
+
+    def __get_track(self, distance):
+        tracks = []  # 用于储存一次拖动滑块的距离（不能一次拖到位，不然会被判定为机器）
+        i = 0
+        # 分为3断，分别设置不同速度，越接近缺口，越慢
+        stagev1 = round((distance) / 4)  # 第1段（前3/5）：分为4次（平均距离移动），stafev1为当前阶段的速度
+        while i < round(distance * 3 / 5):
+            i += stagev1
+            tracks.append(stagev1)
+        stagev2 = round((distance - i) / 7)  # 第2段（3/5到21/25）：分为7次（平均距离移动）
+        while i < round(distance * 21 / 25):
+            i += stagev2
+            tracks.append(stagev2)
+        stagev3 = 1
+        while i < round(distance):  # 第3段（21/25到最后）：按1为单位移动
+            i += stagev3
+            tracks.append(stagev3)
+        return tracks
 
     def __compare_pixel(self, image1, image2, i, j):
         # 判断两个图片像素是否相同
@@ -264,24 +282,18 @@ class register:
 
 
 if __name__ == '__main__':
-    code = input('输入邀请码：')
+    reg_success = 0
+    login_list = []
+    code = input('输入邀请码(没有留空)：')
     while True:
-        try:
-            reg = register(code)
-            # reg.options.add_argument('--headless')
-            reg()
+        reg = register(code)
+        # reg.options.add_argument('--headless')
+        if reg():
             if login_list:
                 print('开始登录')
                 if login(login_list.pop(), reg.passwd):
                     reg_success += 1
                     print(f'已成功注册{reg_success}个')
             login_list.append(reg.email)
-        except KeyboardInterrupt:
-            os._exit(0)
-        except:
-            traceback.print_exc()
-            try:
-                reg.browser.close()
-            except NameError:
-                pass
-            continue
+        else:
+            print('注册失败')
