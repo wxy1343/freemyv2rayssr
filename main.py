@@ -26,7 +26,7 @@ def login(email, passwd):
     try:
         r = requests.post(url, data=data, headers=headers, timeout=10)
     except requests.exceptions.ReadTimeout:
-        pass
+        return
     try:
         if r.json()['ret'] == 0:
             return
@@ -64,8 +64,13 @@ class register:
         self.__completed = True
         try:
             self.browser.close()
-        except (NameError, ImportError, AttributeError, selenium.common.exceptions.InvalidSessionIdException):
+        except (NameError, ImportError, AttributeError, selenium.common.exceptions.InvalidSessionIdException,
+                selenium.common.exceptions.NoSuchWindowException, selenium.common.exceptions.WebDriverException):
             pass
+        except KeyboardInterrupt:
+            os._exit(0)
+        except:
+            traceback.print_exc()
         del self
 
     def __call__(self):
@@ -299,5 +304,7 @@ if __name__ == '__main__':
                     reg_success += 1
                     print(f'已成功注册{reg_success}个')
             login_list.append(reg.email)
+            with open('output.txt', 'a') as f:
+                f.write(f'{reg.email} {reg.passwd}\n')
         else:
             print('注册失败')
