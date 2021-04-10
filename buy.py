@@ -17,3 +17,5 @@ if __name__ == '__main__':
             print(buy(cookies)[1])
         else:
             print(f'{user[0]}登录失败')
+            with open('output_fail.txt', 'a') as f:
+                f.write(f'{user[0]} {user[1]}\n')
