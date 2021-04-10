@@ -2,7 +2,9 @@ import re
 
 import requests
 
-headers = {'User-Agent': None}
+headers = {'User-Agent': 'None'}
+
+base_url = 'https://okme.xyz/'
 
 
 def login(email, passwd):
@@ -12,7 +14,7 @@ def login(email, passwd):
     :param passwd:
     :return:
     """
-    url = 'https://v2.freeyes.xyz/auth/login'
+    url = base_url + 'auth/login'
     data = {'email': email, 'passwd': passwd}
     try:
         r = requests.post(url, data=data, headers=headers, timeout=5)
@@ -30,7 +32,7 @@ def buy(cookies):
     :param cookies:
     :return:
     """
-    url = 'https://freeyes.xyz/user/buy'
+    url = base_url + 'user/buy'
     params = {'shop': 9, 'autorenew': 1, 'disableothers': 1}
     try:
         r = requests.post(url, headers=headers, cookies=cookies, params=params, timeout=5)
@@ -45,7 +47,7 @@ def get_balance(cookies):
     :param cookies:
     :return:
     """
-    url = 'https://freeyes.xyz/user'
+    url = base_url + 'user'
     r = requests.get(url, headers=headers, cookies=cookies)
     return float(re.findall('\s*(.*?) \$', r.text)[0])
 
@@ -56,7 +58,7 @@ def get_sub(cookies):
     :param cookies:
     :return:
     """
-    url = 'https://freeyes.xyz/user'
+    url = base_url + 'user'
     r = requests.get(url, headers=headers, cookies=cookies)
     return re.findall('<code>(https://.*?)</code>', r.text)[0]
 
@@ -67,7 +69,7 @@ def get_invite_num(cookies):
     :param cookies:
     :return:
     """
-    url = 'https://freeyes.xyz/user/invite'
+    url = base_url + 'user/invite'
     r = requests.get(url, headers=headers, cookies=cookies)
     return int(re.findall('<code>(.*?)</code>', r.text)[-3])
 
@@ -79,7 +81,7 @@ def buy_invite(cookies, num=1):
     :param num:
     :return:
     """
-    url = 'https://freeyes.xyz/user/buy_invite'
+    url = base_url + 'user/buy_invite'
     data = {'num': num}
     try:
         r = requests.post(url, headers=headers, cookies=cookies, data=data)
@@ -94,6 +96,6 @@ def get_invite_code(cookies):
     :param cookies:
     :return:
     """
-    url = 'https://freeyes.xyz/user/invite'
+    url = base_url + 'user/invite'
     r = requests.get(url, headers=headers, cookies=cookies)
     return re.findall('value="(.*?)"', r.text)[0]
