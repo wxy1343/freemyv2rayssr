@@ -1,40 +1,23 @@
 import io
-import json
 import os
 import random
 import time
 import traceback
+from functools import partial
 from threading import Thread
-
 import func_timeout
-import requests
 import selenium
 from PIL import Image
 from func_timeout import func_set_timeout
 from selenium import webdriver
 from selenium.webdriver import ActionChains
+from selenium.webdriver.common.actions import interaction
+from selenium.webdriver.common.actions.action_builder import ActionBuilder
+from selenium.webdriver.common.actions.pointer_input import PointerInput
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-
-
-def login(email, passwd):
-    url = 'https://v2.freeyes.xyz/auth/login'
-    data = {'email': email, 'passwd': passwd}
-    headers = {'user-agent': None}
-    try:
-        r = requests.post(url, data=data, headers=headers, timeout=10)
-    except requests.exceptions.ReadTimeout:
-        return
-    try:
-        if r.json()['ret'] == 0:
-            return
-    except json.decoder.JSONDecodeError:
-        return
-    cookies = r.cookies.get_dict()
-    print(cookies)
-    return cookies
 
 
 class register:
@@ -57,7 +40,7 @@ class register:
         self.__completed = False
         if not code:
             code = 'eId6'
-        self.url = f'https://v2.freeyes.xyz/auth/register?code={code}'
+        self.url = f'https://okme.xyz/auth/register?code={code}'
         print(self.url)
 
     def __del__(self):
@@ -102,19 +85,19 @@ class register:
         self.passwd = '11111111'
         # 填入信息
         print('填入信息')
-        wait.until(EC.presence_of_element_located((By.ID, 'name')))
+        wait.until(ec.presence_of_element_located((By.ID, 'name')))
         self.browser.find_element(By.ID, 'name').send_keys(self.name)
-        wait.until(EC.presence_of_element_located((By.ID, 'email')))
+        wait.until(ec.presence_of_element_located((By.ID, 'email')))
         self.browser.find_element(By.ID, 'email').send_keys(self.email)
-        wait.until(EC.presence_of_element_located((By.ID, 'passwd')))
+        wait.until(ec.presence_of_element_located((By.ID, 'passwd')))
         self.browser.find_element(By.ID, 'passwd').send_keys(self.passwd)
-        wait.until(EC.presence_of_element_located((By.ID, 'repasswd')))
+        wait.until(ec.presence_of_element_located((By.ID, 'repasswd')))
         self.browser.find_element(By.ID, 'repasswd').send_keys(self.passwd)
-        wait.until(EC.presence_of_element_located((By.ID, 'wechat')))
+        wait.until(ec.presence_of_element_located((By.ID, 'wechat')))
         self.browser.find_element(By.ID, 'wechat').send_keys(self.wechat)
-        wait.until(EC.presence_of_element_located((By.ID, 'imtype')))
+        wait.until(ec.presence_of_element_located((By.ID, 'imtype')))
         self.browser.find_element(By.ID, 'imtype').click()
-        wait.until(EC.presence_of_element_located((By.XPATH, "//ul[@class='dropdown-menu']/li[last()]/a")))
+        wait.until(ec.presence_of_element_located((By.XPATH, "//ul[@class='dropdown-menu']/li[last()]/a")))
         print('填入信息成功')
         # 循环等待列表框加载成功并点击
         while True:
@@ -240,11 +223,11 @@ class register:
         target_coor -= slid_coor  # 调整偏移量
         track = self.__get_track(target_coor)
         slider = self.browser.find_element_by_xpath("//div[@class='geetest_slider_button']")  # 找到拖动按钮
-        ActionChains(self.browser).move_to_element(slider).perform()  # 建立拖动对象
-        ActionChains(self.browser).click_and_hold(slider).perform()  # 点击，并按住鼠标不放
+        Actions(self.browser).move_to_element(slider).perform()  # 建立拖动对象
+        Actions(self.browser).click_and_hold(slider).perform()  # 点击，并按住鼠标不放
         for x in track:
-            ActionChains(self.browser).move_by_offset(xoffset=x, yoffset=0).perform()  # 拖动，x为一次移动的距离
-        ActionChains(self.browser).release().perform()  # 放开鼠标
+            Actions(self.browser).move_by_offset(xoffset=x, yoffset=0).perform()  # 拖动，x为一次移动的距离
+        Actions(self.browser).release().perform()  # 放开鼠标
         return
 
     def __get_track(self, distance):
@@ -290,20 +273,31 @@ class register:
         return left
 
 
+class Pointer(PointerInput):
+    # 滑动延迟
+    DEFAULT_MOVE_DURATION = 0
+
+    def __init__(self, *args, **kwargs):
+        super(Pointer, self).__init__(*args, **kwargs)
+        self.create_pointer_move = partial(self.create_pointer_move, duration=self.DEFAULT_MOVE_DURATION)
+
+
+class Actions(ActionChains):
+    def __init__(self, driver):
+        ActionChains.__init__(self, driver)
+        pointer = Pointer(interaction.POINTER_MOUSE, "mouse")
+        self.w3c_actions = ActionBuilder(driver, mouse=pointer)
+
+
 if __name__ == '__main__':
     reg_success = 0
-    login_list = []
     code = input('输入邀请码(没有留空)：')
     while True:
         reg = register(code)
         # reg.options.add_argument('--headless')
         if reg():
-            if login_list:
-                print('开始登录')
-                if login(login_list.pop(), reg.passwd):
-                    reg_success += 1
-                    print(f'已成功注册{reg_success}个')
-            login_list.append(reg.email)
+            reg_success += 1
+            print(f'已成功注册{reg_success}个')
             with open('output.txt', 'a') as f:
                 f.write(f'{reg.email} {reg.passwd}\n')
         else:
